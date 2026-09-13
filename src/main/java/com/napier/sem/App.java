@@ -1,4 +1,4 @@
-package com.napier.devops;
+package com.napier.sem;
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
@@ -8,7 +8,7 @@ import org.bson.Document;
 public class App {
     public static void main(String[] args) {
         // Connect to MongoDB on local system (Port 27000)
-        MongoClient mongoClient = new MongoClient("localhost", 27000);
+        MongoClient mongoClient = new MongoClient("mongo-dbserver");
         MongoDatabase database = mongoClient.getDatabase("mydb");
         MongoCollection<Document> collection = database.getCollection("test");
 
