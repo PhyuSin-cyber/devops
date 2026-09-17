@@ -7,19 +7,47 @@ public class App {
     private Connection con = null;
 
     public void connect() {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            con = DriverManager.getConnection(
-                    "jdbc:mysql://db:3306/employees?allowPublicKeyRetrieval=true&useSSL=false",
-                    "root",
-                    "example"
-            );
+        String url =
+                "jdbc:mysql://db:3306/employees"
+                        + "?allowPublicKeyRetrieval=true"
+                        + "&useSSL=false"
+                        + "&connectTimeout=5000";
 
-            System.out.println("Connecting to database...");
-            System.out.println("Successfully connected");
+        for (int attempt = 1; attempt <= 12; attempt++) {
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
 
-        } catch (Exception e) {
-            e.printStackTrace();
+                con = DriverManager.getConnection(
+                        url,
+                        "root",
+                        "example"
+                );
+
+                System.out.println("Successfully connected to database");
+                return;
+
+            } catch (Exception e) {
+                System.out.println(
+                        "Database connection attempt "
+                                + attempt
+                                + " failed: "
+                                + e.getMessage()
+                );
+
+                if (attempt == 12) {
+                    throw new IllegalStateException(
+                            "Could not connect to database", e);
+                }
+
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(
+                            "Interrupted while waiting for database",
+                            interrupted);
+                }
+            }
         }
     }
 
