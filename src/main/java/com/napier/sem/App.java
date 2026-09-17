@@ -1,26 +1,100 @@
 package com.napier.sem;
 
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoCollection;
-import org.bson.Document;
+import java.sql.*;
 
 public class App {
+
+    private Connection con = null;
+
+    public void connect() {
+        try {
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            con = DriverManager.getConnection(
+                    "jdbc:mysql://db:3306/employees?allowPublicKeyRetrieval=true&useSSL=false",
+                    "root",
+                    "example"
+            );
+
+            System.out.println("Connecting to database...");
+            System.out.println("Successfully connected");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void disconnect() {
+        try {
+            if (con != null) {
+                con.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public Employee getEmployee(int ID) {
+        Employee employee = null;
+
+        try {
+            Statement stmt = con.createStatement();
+
+            String strSelect =
+                    "SELECT e.emp_no, e.first_name, e.last_name, " +
+                            "t.title, s.salary, d.dept_name, " +
+                            "CONCAT(m.first_name, ' ', m.last_name) AS manager " +
+                            "FROM employees e " +
+                            "JOIN titles t ON e.emp_no = t.emp_no " +
+                            "JOIN salaries s ON e.emp_no = s.emp_no " +
+                            "JOIN dept_emp de ON e.emp_no = de.emp_no " +
+                            "JOIN departments d ON de.dept_no = d.dept_no " +
+                            "LEFT JOIN dept_manager dm ON de.dept_no = dm.dept_no " +
+                            "LEFT JOIN employees m ON dm.emp_no = m.emp_no " +
+                            "WHERE e.emp_no = " + ID + " " +
+                            "AND t.to_date = '9999-01-01' " +
+                            "AND s.to_date = '9999-01-01' " +
+                            "AND de.to_date = '9999-01-01' " +
+                            "AND dm.to_date = '9999-01-01'";
+
+            ResultSet rset = stmt.executeQuery(strSelect);
+
+            if (rset.next()) {
+                employee = new Employee();
+
+                employee.emp_no = rset.getInt("emp_no");
+                employee.first_name = rset.getString("first_name");
+                employee.last_name = rset.getString("last_name");
+                employee.title = rset.getString("title");
+                employee.salary = rset.getInt("salary");
+                employee.dept_name = rset.getString("dept_name");
+                employee.manager = rset.getString("manager");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return employee;
+    }
+
+    public void displayEmployee(Employee emp) {
+        System.out.println(emp.emp_no + " "
+                + emp.first_name + " "
+                + emp.last_name);
+
+        System.out.println("Title: " + emp.title);
+        System.out.println("Salary:" + emp.salary);
+        System.out.println("Department: " + emp.dept_name);
+        System.out.println("Manager: " + emp.manager);
+    }
+
     public static void main(String[] args) {
-        // Connect to MongoDB on local system (Port 27000)
-        MongoClient mongoClient = new MongoClient("mongo-dbserver");
-        MongoDatabase database = mongoClient.getDatabase("mydb");
-        MongoCollection<Document> collection = database.getCollection("test");
+        App a = new App();
+        a.connect();
 
-        // Insert sample document
-        Document doc = new Document("name", "Kevin Sim")
-                .append("class", "DevOps")
-                .append("year", "2024")
-                .append("result", new Document("CW", 95).append("EX", 85));
-        collection.insertOne(doc);
+        Employee emp = a.getEmployee(255530);
+        a.displayEmployee(emp);
 
-        // Retrieve and print document
-        Document myDoc = collection.find().first();
-        System.out.println(myDoc.toJson());
+        a.disconnect();
     }
 }
