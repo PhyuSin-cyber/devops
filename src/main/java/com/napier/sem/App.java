@@ -8,7 +8,7 @@ public class App {
 
     public void connect() {
         String url =
-                "jdbc:mysql://localhost:33060/employees"
+                "jdbc:mysql://db:3306/employees"
                         + "?allowPublicKeyRetrieval=true"
                         + "&useSSL=false"
                         + "&connectTimeout=5000";
