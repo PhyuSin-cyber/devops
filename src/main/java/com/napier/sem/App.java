@@ -105,6 +105,36 @@ public class App {
         return employee;
     }
 
+    public void getSalariesByRole(String role) {
+        try {
+            Statement stmt = con.createStatement();
+
+            String strSelect =
+                    "SELECT employees.emp_no, employees.first_name, employees.last_name, salaries.salary " +
+                            "FROM employees, salaries, titles " +
+                            "WHERE employees.emp_no = salaries.emp_no " +
+                            "AND employees.emp_no = titles.emp_no " +
+                            "AND salaries.to_date = '9999-01-01' " +
+                            "AND titles.to_date = '9999-01-01' " +
+                            "AND titles.title = '" + role + "' " +
+                            "ORDER BY employees.emp_no ASC";
+
+            ResultSet rset = stmt.executeQuery(strSelect);
+
+            while (rset.next()) {
+                System.out.println(
+                        rset.getInt("emp_no") + " " +
+                                rset.getString("first_name") + " " +
+                                rset.getString("last_name") + " " +
+                                rset.getInt("salary")
+                );
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void displayEmployee(Employee emp) {
         System.out.println(emp.emp_no + " "
                 + emp.first_name + " "
@@ -123,6 +153,9 @@ public class App {
         Employee emp = a.getEmployee(255530);
         a.displayEmployee(emp);
 
+        a.getSalariesByRole("Engineer");
+
         a.disconnect();
+
     }
 }
