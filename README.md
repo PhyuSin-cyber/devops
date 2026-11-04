@@ -1,4 +1,4 @@
-[![codecov](https://codecov.io/gh/PhyuSin-cyber/devops/graph/badge.svg?token=U95QGI1HDH)](https://codecov.io/gh/PhyuSin-cyber/devops)
+[![codecov](https://codecov.io/gh/PhyuSin-cyber/devops/branch/develop/graph/badge.svg?token=U95QGI1HDH)](https://codecov.io/gh/PhyuSin-cyber/devops)
 
 # Software Engineering Methods
 
