@@ -10,47 +10,32 @@ public class App {
     /**
      * Connect to the MySQL database.
      */
-    public void connect() {
-        String url =
-                "jdbc:mysql://db:3306/employees"
-                        + "?allowPublicKeyRetrieval=true"
-                        + "&useSSL=false"
-                        + "&connectTimeout=5000";
+    public void connect(String location, int delay) {
+        try {
+            // Load Database driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+        } catch (ClassNotFoundException e) {
+            System.out.println("Could not load SQL driver");
+            System.exit(-1);
+        }
 
-        for (int attempt = 1; attempt <= 12; attempt++) {
+        int retries = 10;
+        for (int i = 0; i < retries; ++i) {
+            System.out.println("Connecting to database...");
             try {
-                Class.forName("com.mysql.cj.jdbc.Driver");
-
-                con = DriverManager.getConnection(
-                        url,
-                        "root",
-                        "example"
-                );
-
-                System.out.println("Successfully connected to database");
-                return;
-
-            } catch (Exception e) {
-                System.out.println(
-                        "Database connection attempt "
-                                + attempt
-                                + " failed: "
-                                + e.getMessage()
-                );
-
-                if (attempt == 12) {
-                    throw new IllegalStateException(
-                            "Could not connect to database", e);
-                }
-
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(
-                            "Interrupted while waiting for database",
-                            interrupted);
-                }
+                // Wait a bit for db to start
+                Thread.sleep(delay);
+                // Connect to database
+                con = DriverManager.getConnection("jdbc:mysql://" + location
+                                + "/employees?allowPublicKeyRetrieval=true&useSSL=false",
+                        "root", "example");
+                System.out.println("Successfully connected");
+                break;
+            } catch (SQLException sqle) {
+                System.out.println("Failed to connect to database attempt " + Integer.toString(i));
+                System.out.println(sqle.getMessage());
+            } catch (InterruptedException ie) {
+                System.out.println("Thread interrupted? Should not happen.");
             }
         }
     }
@@ -70,7 +55,7 @@ public class App {
 
     /**
      * Retrieves an employee by their ID.
-     * (Exercise 2: Adds the department manager as an Employee object)
+     * Uses LEFT JOINs so employees without salaries or department mappings can still be retrieved.
      *
      * @param ID The employee ID.
      * @return The Employee object containing their details, or null if not found.
@@ -86,17 +71,13 @@ public class App {
                             "t.title, s.salary, d.dept_name, " +
                             "m.emp_no AS m_emp_no, m.first_name AS m_first_name, m.last_name AS m_last_name " +
                             "FROM employees e " +
-                            "JOIN titles t ON e.emp_no = t.emp_no " +
-                            "JOIN salaries s ON e.emp_no = s.emp_no " +
-                            "JOIN dept_emp de ON e.emp_no = de.emp_no " +
-                            "JOIN departments d ON de.dept_no = d.dept_no " +
-                            "LEFT JOIN dept_manager dm ON de.dept_no = dm.dept_no " +
+                            "LEFT JOIN titles t ON e.emp_no = t.emp_no AND t.to_date = '9999-01-01' " +
+                            "LEFT JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01' " +
+                            "LEFT JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01' " +
+                            "LEFT JOIN departments d ON de.dept_no = d.dept_no " +
+                            "LEFT JOIN dept_manager dm ON de.dept_no = dm.dept_no AND dm.to_date = '9999-01-01' " +
                             "LEFT JOIN employees m ON dm.emp_no = m.emp_no " +
-                            "WHERE e.emp_no = " + ID + " " +
-                            "AND t.to_date = '9999-01-01' " +
-                            "AND s.to_date = '9999-01-01' " +
-                            "AND de.to_date = '9999-01-01' " +
-                            "AND dm.to_date = '9999-01-01'";
+                            "WHERE e.emp_no = " + ID;
 
             ResultSet rset = stmt.executeQuery(strSelect);
 
@@ -109,11 +90,13 @@ public class App {
                 employee.title = rset.getString("title");
                 employee.salary = rset.getInt("salary");
 
-                // Assign department
-                employee.dept = new Department();
-                employee.dept.dept_name = rset.getString("dept_name");
+                // Assign department if available
+                if (rset.getString("dept_name") != null) {
+                    employee.dept = new Department();
+                    employee.dept.dept_name = rset.getString("dept_name");
+                }
 
-                // Exercise 2: Add department manager as an Employee
+                // Assign department manager if available
                 if (rset.getString("m_first_name") != null) {
                     Employee mgr = new Employee();
                     mgr.emp_no = rset.getInt("m_emp_no");
@@ -131,7 +114,7 @@ public class App {
     }
 
     /**
-     * Exercise 3: Retrieves an employee based on their first and last name.
+     * Retrieves an employee based on their first and last name.
      *
      * @param first_name The first name of the employee.
      * @param last_name The last name of the employee.
@@ -148,18 +131,14 @@ public class App {
                             "t.title, s.salary, d.dept_name, " +
                             "m.emp_no AS m_emp_no, m.first_name AS m_first_name, m.last_name AS m_last_name " +
                             "FROM employees e " +
-                            "JOIN titles t ON e.emp_no = t.emp_no " +
-                            "JOIN salaries s ON e.emp_no = s.emp_no " +
-                            "JOIN dept_emp de ON e.emp_no = de.emp_no " +
-                            "JOIN departments d ON de.dept_no = d.dept_no " +
-                            "LEFT JOIN dept_manager dm ON de.dept_no = dm.dept_no " +
+                            "LEFT JOIN titles t ON e.emp_no = t.emp_no AND t.to_date = '9999-01-01' " +
+                            "LEFT JOIN salaries s ON e.emp_no = s.emp_no AND s.to_date = '9999-01-01' " +
+                            "LEFT JOIN dept_emp de ON e.emp_no = de.emp_no AND de.to_date = '9999-01-01' " +
+                            "LEFT JOIN departments d ON de.dept_no = d.dept_no " +
+                            "LEFT JOIN dept_manager dm ON de.dept_no = dm.dept_no AND dm.to_date = '9999-01-01' " +
                             "LEFT JOIN employees m ON dm.emp_no = m.emp_no " +
                             "WHERE e.first_name = '" + first_name + "' " +
                             "AND e.last_name = '" + last_name + "' " +
-                            "AND t.to_date = '9999-01-01' " +
-                            "AND s.to_date = '9999-01-01' " +
-                            "AND de.to_date = '9999-01-01' " +
-                            "AND dm.to_date = '9999-01-01' " +
                             "LIMIT 1";
 
             ResultSet rset = stmt.executeQuery(strSelect);
@@ -173,11 +152,11 @@ public class App {
                 employee.title = rset.getString("title");
                 employee.salary = rset.getInt("salary");
 
-                // Assign department
-                employee.dept = new Department();
-                employee.dept.dept_name = rset.getString("dept_name");
+                if (rset.getString("dept_name") != null) {
+                    employee.dept = new Department();
+                    employee.dept.dept_name = rset.getString("dept_name");
+                }
 
-                // Assign department manager
                 if (rset.getString("m_first_name") != null) {
                     Employee mgr = new Employee();
                     mgr.emp_no = rset.getInt("m_emp_no");
@@ -192,6 +171,25 @@ public class App {
         }
 
         return employee;
+    }
+
+    /**
+     * Adds an employee to the database.
+     *
+     * @param emp The employee object to add.
+     */
+    public void addEmployee(Employee emp) {
+        try {
+            Statement stmt = con.createStatement();
+            String strUpdate =
+                    "INSERT INTO employees (emp_no, first_name, last_name, birth_date, gender, hire_date) " +
+                            "VALUES (" + emp.emp_no + ", '" + emp.first_name + "', '" + emp.last_name + "', " +
+                            "'9999-01-01', 'M', '9999-01-01')";
+            stmt.execute(strUpdate);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            System.out.println("Failed to add employee");
+        }
     }
 
     public void getSalariesByRole(String role) {
@@ -250,19 +248,15 @@ public class App {
         }
     }
 
-    public void printSalaries(ArrayList<Employee> employees)
-    {
-        // Check employees is not null
-        if (employees == null)
-        {
+    public void printSalaries(ArrayList<Employee> employees) {
+        if (employees == null) {
             System.out.println("No employees");
             return;
         }
-        // Print header
+
         System.out.println(String.format("%-10s %-15s %-20s %-8s", "Emp No", "First Name", "Last Name", "Salary"));
-        // Loop over all employees in the list
-        for (Employee emp : employees)
-        {
+
+        for (Employee emp : employees) {
             if (emp == null)
                 continue;
             String emp_string =
@@ -272,10 +266,8 @@ public class App {
         }
     }
 
-    public void displayEmployee(Employee emp)
-    {
-        if (emp == null)
-        {
+    public void displayEmployee(Employee emp) {
+        if (emp == null) {
             System.out.println("No employee");
             return;
         }
@@ -291,12 +283,6 @@ public class App {
         );
     }
 
-    /**
-     * Exercise 1: Gets a department by its name, including its department manager.
-     *
-     * @param dept_name The name of the department.
-     * @return The Department object or null if not found.
-     */
     public Department getDepartment(String dept_name) {
         try {
             Statement stmt = con.createStatement();
@@ -315,7 +301,6 @@ public class App {
                 dept.dept_no = rset.getString("dept_no");
                 dept.dept_name = rset.getString("dept_name");
 
-                // Exercise 1: Attach Manager to Department
                 if (rset.getString("first_name") != null) {
                     Employee manager = new Employee();
                     manager.emp_no = rset.getInt("emp_no");
@@ -369,28 +354,18 @@ public class App {
 
     public static void main(String[] args) {
         App a = new App();
-        a.connect();
 
-        // 1. Test getDepartment with Manager (Exercise 1)
-        Department dept = a.getDepartment("Sales");
-        if (dept != null) {
-            System.out.println("Department: " + dept.dept_name + " (" + dept.dept_no + ")");
-            if (dept.manager != null) {
-                System.out.println("Department Manager: " + dept.manager.first_name + " " + dept.manager.last_name);
-            }
+        if (args.length < 1) {
+            a.connect("localhost:33060", 30000);
+        } else {
+            a.connect(args[0], Integer.parseInt(args[1]));
         }
 
-        // 2. Test getEmployee with ID and Manager (Exercise 2)
-        System.out.println("\nTesting getEmployee by ID:");
-        Employee empById = a.getEmployee(255530);
-        a.displayEmployee(empById);
+        Department dept = a.getDepartment("Development");
+        ArrayList<Employee> employees = a.getSalariesByDepartment(dept);
 
-        // 3. Test getEmployee by Name (Exercise 3)
-        System.out.println("\nTesting getEmployee by Name:");
-        Employee empByName = a.getEmployee("Ronghao", "Apsitis");
-        a.displayEmployee(empByName);
+        a.printSalaries(employees);
 
         a.disconnect();
-        System.out.println("\nApplication finished successfully.");
     }
 }
