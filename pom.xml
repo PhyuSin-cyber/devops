@@ -31,7 +31,20 @@
 
     <build>
         <plugins>
-            <!-- Maven Assembly Plugin to produce devops.jar -->
+            <!-- Maven Jar Plugin: skips building default jar -->
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>default-jar</id>
+                        <!-- skip building the default-jar-->
+                        <phase>none</phase>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Assembly Plugin: builds devops.jar with dependencies -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -59,14 +72,14 @@
                 </executions>
             </plugin>
 
-            <!-- Maven Surefire Plugin for running tests -->
+            <!-- Maven Surefire Plugin: runs test suites -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.2.5</version>
             </plugin>
 
-            <!-- JaCoCo Plugin for Code Coverage -->
+            <!-- JaCoCo Plugin: tracks code coverage -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -88,5 +101,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>
